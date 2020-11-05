@@ -1,0 +1,29 @@
+#!/bin/bash
+DUMMY_WEBCAM=/dev/video0
+VIDEO_WIDTH=1280
+VIDEO_HEIGHT=720
+
+function assert() {
+	local message="$1"
+	shift
+	"$@"
+	local rc=$?
+	[ $rc -eq 0 ] && return 0
+	set $(caller)
+	date=$(date "+%Y-%m-%d %T%z")
+	echo "$date $2 [$$]: $message (line=$1, rc=$rc)" >&2
+	exit $rc
+}
+
+assert "v4l2loopback module not loaded" grep -q v4l2loopback /proc/modules
+assert "${DUMMY_WEBCAM} does not exist" test -e ${DUMMY_WEBCAM}
+assert "${DUMMY_WEBCAM} is not writable" test -w ${DUMMY_WEBCAM}
+
+assert "Unable to unload v4l2loopback" sudo modprobe -r v4l2loopback
+sudo modprobe v4l2loopback
+
+sudo v4l2loopback-ctl \
+    set-caps "video/x-raw, format=I420, width=${VIDEO_WIDTH}, height=${VIDEO_HEIGHT}" \
+    "${DUMMY_WEBCAM}" \
+    2>/dev/null >/dev/null
+
