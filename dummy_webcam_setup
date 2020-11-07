@@ -54,7 +54,7 @@ assert "${DUMMY_WEBCAM} does not exist" test -e ${DUMMY_WEBCAM}
 assert "${DUMMY_WEBCAM} is not writable" test -w ${DUMMY_WEBCAM}
 
 printf 'Reloading v4l2loopback\n'
-assert "Unable to unload v4l2loopback" sudo modprobe -r v4l2loopback
+assert "Unable to unload v4l2loopback" sudo modprobe --remove v4l2loopback
 sudo modprobe v4l2loopback
 
 printf 'Setting up %s to %s pixel format at %d×%d\n' \
@@ -62,9 +62,9 @@ printf 'Setting up %s to %s pixel format at %d×%d\n' \
     "${FORMAT}" \
     "${WIDTH}" \
     "${HEIGHT}"
+
 sudo v4l2loopback-ctl \
     set-caps "video/x-raw, format=${FORMAT}, width=${WIDTH}, height=${HEIGHT}" \
     "${DUMMY_WEBCAM}" \
     2>/dev/null >/dev/null \
     && printf 'Done!\n'
-

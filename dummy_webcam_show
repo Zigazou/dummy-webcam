@@ -55,6 +55,7 @@ function send_media_file() {
 		-loglevel error \
 		-re \
 		-i "${media_file}" \
+		-f pulse -device DummyMic DummyMic \
 		-vf "format=yuv420p, scale=${scaling}, pad=${padding}" \
 		-f v4l2 \
 		"${DUMMY_WEBCAM}"
@@ -63,6 +64,7 @@ function send_media_file() {
 assert "v4l2loopback module not loaded" grep -q v4l2loopback /proc/modules
 assert "FFmpeg is not installed" which ffmpeg > /dev/null
 assert "udevadm not found" which udevadm > /dev/null
+assert "Unable to access audio Loopback" test -d /proc/asound/Loopback
 
 DUMMY_WEBCAM="$(find_v4l2loopback_file)"
 assert "${DUMMY_WEBCAM} does not exist" test -e ${DUMMY_WEBCAM}
