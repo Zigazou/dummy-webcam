@@ -52,6 +52,10 @@ setup
 play
 .RI [ FILE .\|.\|.]
 .br
+.B dummy-webcam
+help
+.RI < html | man | raw >
+.br
 \fBdummy-webcam\fP
 .SH DESCRIPTION
 \fBdummy-webcam\fP is a Bash script which takes advantage of
@@ -100,6 +104,16 @@ files will be played one after the other in the specified order.
 
 \fINote\fP: if a thumbnail is associated with an mp3, \fBdummy-webcam\fP
 will show it in the video stream.
+.SS "dummy-webcam help"
+.TP
+.B html
+Write the help in HTML on the standard output.
+.TP
+.B man
+Write the help in man format on the standard output.
+.TP
+.B raw
+Write the help source code on the standard output.
 .SH REQUIREMENTS
 In order to use \fBdummy-webcam\fP, the following packages need to be
 installed:
@@ -150,11 +164,23 @@ HELP_END
 }
 
 # @description Show help for this script like a man page.
-# @noargs
-# @stdout The standard output is sent to the less command.
+# @arg $1 string Specify the output format (either raw, html or man)
+# @stdout This script's help.
 # @exitcode 0 Should be the normal exit code.
 function show_help() {
-    generate_help | groff -T utf8 -man - | less --raw-control-chars
+    case "$1" in
+        raw)
+            generate_help
+            ;;
+
+        html)
+            generate_help | groff -T html -man -
+            ;;
+
+        *)
+            generate_help | groff -T utf8 -man -
+            ;;
+    esac
 }
 
 # @description Get the ID_V4L_PRODUCT property of a special file.
@@ -370,7 +396,7 @@ function play_media_files() {
     done
 }
 
-test "$1" == "setup" && command="$1-$2" || command="$1"
+test "$1" == "play" && command="$1" || command="$1-$2"
 shift
 case "$command" in
     setup-video)
@@ -393,7 +419,19 @@ case "$command" in
         printf "Done!\n"
         ;;
 
+    help-html)
+        show_help html
+        ;;
+
+    help-man)
+        show_help man
+        ;;
+
+    help-raw)
+        show_help raw
+        ;;
+
     *)
-        show_help
+        show_help man | less --raw-control-chars
         ;;
 esac

@@ -1,0 +1,364 @@
+<!-- Creator     : groff version 1.22.3 -->
+<!-- CreationDate: Sat Nov  7 17:26:25 2020 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>DUMMY-WEBCAM</title>
+
+</head>
+<body>
+
+<h1 align="center">DUMMY-WEBCAM</h1>
+
+<a href="#NAME">NAME</a><br>
+<a href="#SYNOPSIS">SYNOPSIS</a><br>
+<a href="#DESCRIPTION">DESCRIPTION</a><br>
+<a href="#OPTIONS">OPTIONS</a><br>
+<a href="#REQUIREMENTS">REQUIREMENTS</a><br>
+<a href="#SEE ALSO">SEE ALSO</a><br>
+<a href="#AUTHOR">AUTHOR</a><br>
+<a href="#BUGS">BUGS</a><br>
+
+<hr>
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">dummy-webcam -
+Simulates a webcam that can then be used in video
+conferencing software.</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>dummy-webcam</b>
+setup &lt;<i>webcam</i>|<i>video</i>|<i>audio</i>&gt;
+<b><br>
+dummy-webcam</b> play [<i>FILE</i>...] <b><br>
+dummy-webcam</b> help
+&lt;<i>html</i>|<i>man</i>|<i>raw</i>&gt; <b><br>
+dummy-webcam</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>dummy-webcam</b>
+is a Bash script which takes advantage of
+<b>v4l2loopback</b>, <b>ffmpeg</b> and <b>PulseAudio</b> to
+substitute a webcam stream with any file supported by
+<b>ffmpeg</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Without any
+parameter, <b>dummy-webcam</b> gives displays this help.</p>
+
+<p style="margin-left:11%; margin-top: 1em">With the
+<b>dummy-webcam setup</b> form, you setup the virtual
+devices as needed. You need to use this form only once
+before playing any stream.</p>
+
+<p style="margin-left:11%; margin-top: 1em">With the
+<b>dummy-webcam play</b> form, you will be able to send
+media files (video+audio, video only, audio only, still
+images or animated images) to the dummy webcam.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>Notes</i>:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><b>dummy-webcam setup webcam</b> combines the effect of
+<b>dummy-webcam setup video</b> and <b>dummy-webcam setup
+audio</b> so you don&rsquo;t need to call these last two
+commands if you already ran the first.</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p>The video virtual device to use in video conferencing
+applications will be identified as <i>Dummy video device
+(0x0000)</i>.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p>The audio virtual device to use in video conferencing
+applications will be identified as <i>Dummy
+microphone</i>.</p> </td></tr>
+</table>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>dummy-webcam
+setup</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em"><b>webcam</b></p></td>
+<td width="2%"></td>
+<td width="64%">
+
+
+<p style="margin-top: 1em">Setup the video and audio
+virtual devices.</p></td>
+<td width="14%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>video</b></p></td>
+<td width="2%"></td>
+<td width="64%">
+
+
+<p>Setup only the video virtual device.</p></td>
+<td width="14%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>audio</b></p></td>
+<td width="2%"></td>
+<td width="64%">
+
+
+<p>Setup only the audio virtual device.</p></td>
+<td width="14%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>dummy-webcam
+play <br>
+FILE...</b></p>
+
+<p style="margin-left:22%;">Any file that can be played by
+<b>ffmpeg</b> (mpeg, mp3, mp4, mkv, ogg, gif, png, jpeg...).
+You may specify more than one file in which case the files
+will be played one after the other in the specified
+order.</p>
+
+<p style="margin-left:22%; margin-top: 1em"><i>Note</i>: if
+a thumbnail is associated with an mp3, <b>dummy-webcam</b>
+will show it in the video stream.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>dummy-webcam
+help</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>html</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Write the help in HTML on the standard output.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>man</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Write the help in man format on the standard output.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>raw</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Write the help source code on the standard output.</p></td></tr>
+</table>
+
+<h2>REQUIREMENTS
+<a name="REQUIREMENTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">In order to use
+<b>dummy-webcam</b>, the following packages need to be
+installed:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="18%">
+
+
+<p style="margin-top: 1em">v4l2loopback</p></td>
+<td width="57%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="18%">
+
+
+<p>PulseAudio</p></td>
+<td width="57%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="18%">
+
+
+<p>ffmpeg</p></td>
+<td width="57%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">On Debian-like
+distributions, these can be installed with the following
+command:</p>
+
+<p style="margin-left:22%;">sudo apt install v4l2loopback
+ffmpeg</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>Notes</i>:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p style="margin-top: 1em"><b>dummy-webcam setup video</b>
+requires you to have root (sudo) permissions, so don&rsquo;t
+be surprised if it asks for your password.</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><b>dummy-webcam setup audio</b> uses the
+module-null-sink and module-remap-source <b>PulseAudio</b>
+modules. module-null-sink is used to create virtual sinks
+and module-remap-source is used to create virtual sources
+that video conferencing application can identify as a
+microphone source.</p></td></tr>
+</table>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">v4l2loopback-ctl(1),
+pactl(1), pacmd(1), ffmpeg(1) <br>
+<a href="https://github.com/Zigazou/dummy-webcam">GitHub
+repository</a></p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Written by
+<a href="mailto:zigazou@free.fr">Frederic Bisson</a></p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><a href="https://github.com/Zigazou/dummy-webcam/issues">Please
+report any problem by using the GitHub issue application of
+<b>dummy-webcam</b></a></p>
+<hr>
+</body>
+</html>
