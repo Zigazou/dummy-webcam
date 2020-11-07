@@ -1,7 +1,7 @@
 Dummy webcam
 ============
 
-Dummy webcam is a set of 2 Bash scripts which take advantage of v4l2loopback and
+Dummy webcam is a Bash script which takes advantage of v4l2loopback and
 ffmpeg to substitute a webcam stream with any file supported by ffmpeg.
 
 Requirements
@@ -14,24 +14,21 @@ On Debian/Ubuntu, you need to install the following packages:
 Setup
 -----
 
-You need to run `dummy_webcam_setup` once before sending any file to the fake
+You need to run `dummy-webcam setup` once before sending any file to the fake
 webcam.
 
-    dummy_webcam_setup
+    dummy-webcam setup webcam
 
 Note:
 - This script requires root (sudo) permissions, don't be surprised if it
   asks for your password.
-- it uses the `/dev/video0` special file.
+- it uses the first `/dev/video*` special file available.
 
 Usage
 -----
 
-The `dummy_webcam_show` script is all you need:
+You can play any media file supported by ffmpeg with `dummy-webcam play`:
 
-    dummy_webcam_show example.gif
-    dummy_webcam_show example.jpg
-    dummy_webcam_show example.mp4
+    dummy-webcam play example.gif example.jpg example.mp4
 
-Any file supported by ffmpeg should work.
-
+If the command line parameters are not correct, the script shows an help page.

@@ -1,0 +1,399 @@
+#!/bin/bash
+# @file dummy-example
+# @brief Use any media file as a source for videoconferencing applications.
+# @description
+WIDTH=1280
+HEIGHT=720
+FORMAT=I420
+
+# @description Assert function for Bash.
+#
+# @example
+#    assert "File not found" test -r /dev/null
+#
+# @arg $1 string The message to display if the assertion fails.
+# @arg $2 string The command to execute.
+# @arg ... any The parameters to give to the command to be executed.
+#
+# @stdout The stdout of the command executed.
+# @exitcode 0 If the assertion is validated.
+function assert() {
+    local message="$1"
+    shift
+    "$@"
+    local rc=$?
+    [ $rc -eq 0 ] && return 0
+    caller | {
+        IFS=' ' read -r line script
+        date=$(date "+%Y-%m-%d %T%z")
+        echo "$date $script [$$]: $message (line=$line, rc=$rc)" >&2
+        exit $rc
+    }
+}
+
+# @description Generate the help for this script in groff format.
+# @noargs
+# @stdout Help in groff format.
+# @exitcode 0 Should be the normal exit value.
+function generate_help() {
+    cat <<'HELP_END'
+.AM
+.TH DUMMY-WEBCAM 1 "7 November 2020"
+.SH NAME
+dummy-webcam \- Simulates a webcam that can then be used in video
+conferencing
+software.
+.SH SYNOPSIS
+.B dummy-webcam
+setup
+.RI < webcam | video | audio >
+.br
+.B dummy-webcam
+play
+.RI [ FILE .\|.\|.]
+.br
+\fBdummy-webcam\fP
+.SH DESCRIPTION
+\fBdummy-webcam\fP is a Bash script which takes advantage of
+\fBv4l2loopback\fP, \fBffmpeg\fP and \fBPulseAudio\fP to substitute a
+webcam stream with any file supported by \fBffmpeg\fP.
+
+Without any parameter, \fBdummy-webcam\fP gives displays this help.
+
+With the \fBdummy-webcam setup\fP form, you setup the virtual devices as
+needed. You need to use this form only once before playing any stream.
+
+With the \fBdummy-webcam play\fP form, you will be able to send media
+files (video+audio, video only, audio only, still images or animated
+images) to the dummy webcam.
+
+\fINotes\fP:
+.RS
+.IP \[bu] 2
+\fBdummy-webcam setup webcam\fP combines the effect of \fBdummy-webcam
+setup video\fP and \fBdummy-webcam setup audio\fP so you don't need to
+call these last two commands if you already ran the first.
+.IP \[bu]
+The video virtual device to use in video conferencing applications will
+be identified as \fIDummy video device (0x0000)\fP.
+.IP \[bu]
+The audio virtual device to use in video conferencing applications will
+be identified as \fIDummy microphone\fP.
+.RE
+.SH OPTIONS
+.SS "dummy-webcam setup"
+.TP
+.B webcam
+Setup the video and audio virtual devices.
+.TP
+.B video
+Setup only the video virtual device.
+.TP
+.B audio
+Setup only the audio virtual device.
+.SS "dummy-webcam play"
+.TP
+.BR FILE\|...
+Any file that can be played by \fBffmpeg\fP (mpeg, mp3, mp4, mkv, ogg,
+gif, png, jpeg...). You may specify more than one file in which case the
+files will be played one after the other in the specified order.
+
+\fINote\fP: if a thumbnail is associated with an mp3, \fBdummy-webcam\fP
+will show it in the video stream.
+.SH REQUIREMENTS
+In order to use \fBdummy-webcam\fP, the following packages need to be
+installed:
+.RS
+.IP \[bu] 2
+v4l2loopback
+.IP \[bu] 
+PulseAudio
+.IP \[bu] 
+ffmpeg
+.RE
+
+On Debian-like distributions, these can be installed with the following
+command:
+.RS
+sudo apt install v4l2loopback ffmpeg
+.RE
+
+\fINotes\fP:
+.RS
+.IP \[bu] 2
+\fBdummy-webcam setup video\fP requires you to have root (sudo)
+permissions, so don't be surprised if it asks for your password.
+.IP \[bu]
+\fBdummy-webcam setup audio\fP uses the module-null-sink and
+module-remap-source \fBPulseAudio\fP modules. module-null-sink is used
+to create virtual sinks and module-remap-source is used to create
+virtual sources that video conferencing application can identify as a
+microphone source.
+.RE
+.SH "SEE ALSO"
+v4l2loopback-ctl(1), pactl(1), pacmd(1), ffmpeg(1)
+
+.UR https://github.com/Zigazou/dummy-webcam
+GitHub repository
+.UE
+.SH AUTHOR
+Written by 
+.MT zigazou@free.fr
+Fre\*[']de\*[']ric Bisson
+.ME
+.SH BUGS
+.UR https://github.com/Zigazou/dummy-webcam/issues
+Please report any problem by using the GitHub issue application of
+\fBdummy-webcam\fP
+.UE
+HELP_END
+}
+
+# @description Show help for this script like a man page.
+# @noargs
+# @stdout The standard output is sent to the less command.
+# @exitcode 0 Should be the normal exit code.
+function show_help() {
+    generate_help | groff -T utf8 -man - | less --raw-control-chars
+}
+
+# @description Get the ID_V4L_PRODUCT property of a special file.
+#
+# @example
+#    get_id_v4l_product /dev/video0
+#
+# @arg $1 string The special file to look for the ID_V4L_PRODUCT property.
+#
+# @stdout The ID_V4L_PRODUCT property (may be an empty string).
+# @exitcode 0 Should be the normal value.
+function get_id_v4l_product() {
+    local special_file="$1"
+
+    udevadm info --query=property "${special_file}" \
+        | grep "ID_V4L_PRODUCT" \
+        | cut -c 16-
+}
+
+# @description Look for the v4l2loopback /dev/video* file.
+#
+# @example
+#    find_v4l2loopback
+#
+# @arg $1 string The special file to look for the ID_V4L_PRODUCT property.
+#
+# @stdout The ID_V4L_PRODUCT property (may be an empty string).
+# @exitcode 0 Should be the normal value.
+function find_v4l2loopback_file() {
+    local video_device
+    local video_desc
+
+    printf 'Looking for v4l2loopback special file:\n' >&2
+    for video_device in /dev/video*
+    do
+        video_desc="$(get_id_v4l_product "${video_device}" 2>/dev/null)"
+
+        printf '  - %s (%s) -> ' "${video_device}" "${video_desc}" >&2
+        if [ "${video_desc}" == "Dummy video device (0x0000)" ]
+        then
+            printf 'FOUND!\n' >&2
+            printf '%s' "${video_device}"
+        else
+            printf 'not a v4l2loopback special file\n' >&2
+        fi
+    done
+}
+
+# @description Setup the video environment of dummy-webcam.
+# @arg $1 string Pixel format used by the video stream.
+# @arg $2 int Width in pixels of the video stream.
+# @arg $3 int Height in pixels of the video stream.
+function setup_video() {
+    local format="$1"
+    local width="$2"
+    local height="$3"
+    local dummy_webcam capabilities
+
+    assert "v4l2loopback module not loaded" grep -q v4l2loopback /proc/modules
+    assert "video4linux driver not found" grep -q video4linux /proc/devices
+    assert "udevadm not found" which udevadm > /dev/null
+
+    dummy_webcam="$(find_v4l2loopback_file)"
+    assert "'$dummy_webcam' does not exist" test -e "$dummy_webcam"
+    assert "'$dummy_webcam' is not writable" test -w "$dummy_webcam"
+
+    printf 'Reloading v4l2loopback\n'
+    assert "Unable to unload v4l2loopback" sudo modprobe --remove v4l2loopback
+    assert "Unable to reload v4l2loopback" sudo modprobe v4l2loopback
+
+    printf 'Setting up %s to %s pixel format at %d×%d\n' \
+        "$dummy_webcam" \
+        "$format" \
+        "$width" \
+        "$height"
+
+    capabilities="video/x-raw, format=$format, width=$width, height=$height"
+    assert "Unable to set $dummy_webcam capabilities" \
+        sudo v4l2loopback-ctl \
+            set-caps "$capabilities" \
+            "$dummy_webcam" \
+            2>/dev/null \
+            >/dev/null
+}
+
+# @description Look for an existing DummyMic sink in PulseAudio.
+# @noargs
+#
+# @stdout The ID_V4L_PRODUCT property (may be an empty string).
+# @exitcode 0 Should be the normal value.
+function find_dummy_mic() {
+    local current_module
+    local line
+
+    assert "pactl not found" which pactl > /dev/null
+
+    LANG='' pactl list modules | while read -r line
+    do
+        test "${line::8}" == "Module #" && current_module="${line:8}"
+        test "${line}" == "Argument: sink_name=DummyMic" \
+            && printf "%d\n" "${current_module}"
+    done
+}
+
+# @description Setup the audio environment of dummy-webcam.
+# @noargs
+function setup_audio() {
+    assert "pactl not found" which pactl > /dev/null
+    assert "pacmd not found" which pacmd > /dev/null
+
+    local existing_module new_module
+
+    existing_module="$(find_dummy_mic)"
+    if [ "$existing_module" != "" ]
+    then
+        printf 'DummyMic already installed as Module #%d\n' "$existing_module"
+        return 0
+    fi
+
+    # Load null module.
+    new_module="$(assert "Unable to create DummyMic sink" \
+        LANG='' pactl load-module module-null-sink sink_name=DummyMic \
+    )"
+
+    # Set device description.
+    assert "Unable to set DummyMic device description" \
+        pacmd \
+            update-sink-proplist DummyMic \
+            device.description="\"Dummy microphone\""
+
+    # Remap source to make it available to applications.
+    assert "Unable to remap DummyMic" \
+        pactl \
+            load-module module-remap-source \
+            source_name=DummyMicRemap \
+            master=DummyMic.monitor \
+            > /dev/null
+
+    # Set device description.
+    assert "Unable to set DummyMic remap device description" \
+        pacmd \
+            update-source-proplist DummyMicRemap \
+            device.description="\"Dummy microphone\""
+
+    printf 'DummyMic installed as Module #%d\n' "$new_module"
+}
+
+# @description Send media file to the v4l2loopback and the DummyMic sink.
+#
+# @example
+#    play_media_file /dev/video0 1280 720 video.mp4
+#
+# @arg $1 string The v4l2loopback special file.
+# @arg $2 int Width in pixels of the video stream to generate.
+# @arg $3 int Height in pixels of the video stream to generate.
+# @arg $4 string The media file to play.
+#
+# @stdout Indicates which file is playing.
+# @stderr Error messages from ffmpeg.
+# @exitcode 0 Should be the normal value.
+function play_media_file() {
+    local dummy_webcam="$1"
+    local width="$2"
+    local height="$3"
+	local media_file="$4"
+	local scaling="w=$width:h=$height:force_original_aspect_ratio=1"
+	local padding="$width:$height:(ow-iw)/2:(oh-ih)/2:color=black"
+
+	printf '  - Playing %s...\n' "$media_file"
+	ffmpeg \
+		-loglevel error \
+		-re \
+		-i "$media_file" \
+		-f pulse -device DummyMic DummyMic \
+		-vf "format=yuv420p, scale=$scaling, pad=$padding" \
+		-f v4l2 \
+		"$dummy_webcam"
+}
+
+# @description Send multiple media files to the v4l2loopback and the DummyMic
+# sink.
+#
+# @example
+#    play_media_files 1280 720 video1.mp4 video2.mp4
+#
+# @arg $1 int Width in pixels of the video stream to generate.
+# @arg $2 int Height in pixels of the video stream to generate.
+# @arg ... string The media files to play.
+#
+# @stdout Indicates which file is playing.
+# @stderr Error messages from ffmpeg.
+function play_media_files() {
+    local width="$1"
+    local height="$2"
+    local dummy_webcam
+    shift 2
+
+    assert "v4l2loopback module not loaded" grep -q v4l2loopback /proc/modules
+    assert "ffmpeg is not installed" which ffmpeg > /dev/null
+    assert "udevadm not found" which udevadm > /dev/null
+
+    dummy_webcam="$(find_v4l2loopback_file)"
+    assert "$dummy_webcam does not exist" test -e "$dummy_webcam"
+    assert "$dummy_webcam is not writable" test -w "$dummy_webcam"
+
+    # Send each media file.
+    printf 'Playing files on %s at %d×%d:\n' "$dummy_webcam" "$width" "$height"
+    for media in "$@"
+    do
+        test -r "$media" \
+            && play_media_file "$dummy_webcam" "$width" "$height" "$media" \
+            || printf '  - %s not found or not readable\n' "$media"
+    done
+}
+
+test "$1" == "setup" && command="$1-$2" || command="$1"
+shift
+case "$command" in
+    setup-video)
+        setup_video "$FORMAT" "$WIDTH" "$HEIGHT"
+        printf "Done!\n"
+        ;;
+
+    setup-audio)
+        setup_audio
+        ;;
+
+    setup-webcam)
+        setup_video "$FORMAT" "$WIDTH" "$HEIGHT"
+        setup_audio
+        printf "Done!\n"
+        ;;
+
+    play)
+        play_media_files "$WIDTH" "$HEIGHT" "$@"
+        printf "Done!\n"
+        ;;
+
+    *)
+        show_help
+        ;;
+esac
