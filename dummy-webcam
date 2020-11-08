@@ -302,7 +302,7 @@ function setup_audio() {
 
     # Load null module.
     new_module="$(assert "Unable to create DummyMic sink" \
-        LANG='' pactl load-module module-null-sink sink_name=DummyMic \
+        pactl load-module module-null-sink sink_name=DummyMic \
     )"
 
     # Set device description.
