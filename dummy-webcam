@@ -269,7 +269,7 @@ function setup_video() {
 # @description Look for an existing DummyMic sink in PulseAudio.
 # @noargs
 #
-# @stdout The ID_V4L_PRODUCT property (may be an empty string).
+# @stdout The module ID of an existing DummyMic or an empty string.
 # @exitcode 0 Should be the normal value.
 function find_dummy_mic() {
     local current_module
@@ -348,16 +348,31 @@ function play_media_file() {
 	local media_file="$4"
 	local scaling="w=$width:h=$height:force_original_aspect_ratio=1"
 	local padding="$width:$height:(ow-iw)/2:(oh-ih)/2:color=black"
+    local dummy_mic
 
-	printf '  - Playing %s...\n' "$media_file"
-	ffmpeg \
-		-loglevel error \
-		-re \
-		-i "$media_file" \
-		-f pulse -device DummyMic DummyMic \
-		-vf "format=yuv420p, scale=$scaling, pad=$padding" \
-		-f v4l2 \
-		"$dummy_webcam"
+    dummy_mic="$(find_dummy_mic)"
+
+    if [ "$dummy_mic" == "" ]
+    then
+        printf '  - [video only] %s...\n' "$media_file"
+        ffmpeg \
+            -loglevel error \
+            -re \
+            -i "$media_file" \
+            -vf "format=yuv420p, scale=$scaling, pad=$padding" \
+            -f v4l2 \
+            "$dummy_webcam"
+    else
+        printf '  - [video+audio] %s...\n' "$media_file"
+        ffmpeg \
+            -loglevel error \
+            -re \
+            -i "$media_file" \
+            -f pulse -device DummyMic DummyMic \
+            -vf "format=yuv420p, scale=$scaling, pad=$padding" \
+            -f v4l2 \
+            "$dummy_webcam"
+    fi
 }
 
 # @description Send multiple media files to the v4l2loopback and the DummyMic
@@ -390,9 +405,13 @@ function play_media_files() {
     printf 'Playing files on %s at %d×%d:\n' "$dummy_webcam" "$width" "$height"
     for media in "$@"
     do
-        test -r "$media" \
-            && play_media_file "$dummy_webcam" "$width" "$height" "$media" \
-            || printf '  - %s not found or not readable\n' "$media"
+        if [ -r "$media" ]
+        then
+            play_media_file "$dummy_webcam" "$width" "$height" "$media" \
+                || printf "    (playback interrupted by user)\n"
+        else
+            printf '  - %s not found or not readable\n' "$media"
+        fi
     done
 }
 
