@@ -16,6 +16,7 @@ Use any media file as a source for videoconferencing applications.
 * [setup_video()](#setupvideo)
 * [find_dummy_mic()](#finddummymic)
 * [setup_audio()](#setupaudio)
+* [detect_media_type()](#detectmediatype)
 * [play_media_file()](#playmediafile)
 * [play_media_files()](#playmediafiles)
 
@@ -139,13 +140,35 @@ _Function has no arguments._
 
 #### Output on stdout
 
-* The ID_V4L_PRODUCT property (may be an empty string).
+* The module ID of an existing DummyMic or an empty string.
 
 ### setup_audio()
 
 Setup the audio environment of dummy-webcam.
 
 _Function has no arguments._
+
+### detect_media_type()
+
+Detect media type using ffprobe.
+
+#### Example
+
+```bash
+detect_media_type video.mp4
+```
+
+#### Arguments
+
+* **$1** (string): The media file to analyze.
+
+#### Exit codes
+
+* **0**: Should be the normal value.
+
+#### Output on stdout
+
+* '', 'audio', 'video' or 'audiovideo'.
 
 ### play_media_file()
 

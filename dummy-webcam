@@ -328,6 +328,29 @@ function setup_audio() {
     printf 'DummyMic installed as Module #%d\n' "$new_module"
 }
 
+# @description Detect media type using ffprobe.
+#
+# @example
+#    detect_media_type video.mp4
+#
+# @arg $1 string The media file to analyze.
+#
+# @stdout '', 'audio', 'video' or 'audiovideo'.
+# @exitcode 0 Should be the normal value.
+function detect_media_type() {
+    local media_file="$1"
+
+    assert "ffprobe not found" which ffprobe > /dev/null
+
+    {
+        ffprobe -loglevel error -show_streams "$media_file" \
+            | grep --only --perl-regexp '(?<=codec_type=).*$' \
+            | sort \
+            | uniq \
+            | tr --delete '\n'
+    } 2> /dev/null
+}
+
 # @description Send media file to the v4l2loopback and the DummyMic sink.
 #
 # @example
@@ -351,28 +374,51 @@ function play_media_file() {
     local dummy_mic
 
     dummy_mic="$(find_dummy_mic)"
+    media_type="$(detect_media_type "$media_file")"
 
-    if [ "$dummy_mic" == "" ]
-    then
-        printf '  - [video only] %s...\n' "$media_file"
-        ffmpeg \
-            -loglevel error \
-            -re \
-            -i "$media_file" \
-            -vf "format=yuv420p, scale=$scaling, pad=$padding" \
-            -f v4l2 \
-            "$dummy_webcam"
-    else
-        printf '  - [video+audio] %s...\n' "$media_file"
-        ffmpeg \
-            -loglevel error \
-            -re \
-            -i "$media_file" \
-            -f pulse -device DummyMic DummyMic \
-            -vf "format=yuv420p, scale=$scaling, pad=$padding" \
-            -f v4l2 \
-            "$dummy_webcam"
-    fi
+    case "$media_type-$dummy_mic" in
+        audio-[0-9]*)
+            # Audio only with an existing PulseAudio dummy device.
+            printf '  - [audio only] %s...\n' "$media_file"
+            ffmpeg \
+                -loglevel error \
+                -re \
+                -i "$media_file" \
+                -f pulse -device DummyMic DummyMic
+            ;;
+
+        audiovideo- | video-*)
+            # Video with audio or video without PulseAudio dummy device.
+            printf '  - [video only] %s...\n' "$media_file"
+            ffmpeg \
+                -loglevel error \
+                -re \
+                -i "$media_file" \
+                -vf "format=yuv420p, scale=$scaling, pad=$padding" \
+                -f v4l2 \
+                "$dummy_webcam"
+            ;;
+
+        audiovideo-*)
+            # Video with audio.
+            printf '  - [video+audio] %s...\n' "$media_file"
+            ffmpeg \
+                -loglevel error \
+                -re \
+                -i "$media_file" \
+                -f pulse -device DummyMic DummyMic \
+                -vf "format=yuv420p, scale=$scaling, pad=$padding" \
+                -f v4l2 \
+                "$dummy_webcam"
+            ;;
+
+        *)
+            printf '  - Unable to play %s (media type=%s, mic=%s)\n' \
+                "$media_file" \
+                "$media_type" \
+                "$dummy_mic"
+            ;;
+    esac
 }
 
 # @description Send multiple media files to the v4l2loopback and the DummyMic
